@@ -1,5 +1,6 @@
 package inc.notchg.workoutapp.ui.home
 
+import android.content.Context
 import android.content.Context.SENSOR_SERVICE
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -11,15 +12,34 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.ContextCompat.getSystemService
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import inc.notchg.workoutapp.R
 
-class HomeFragment : Fragment() {
+class HomeFragment : Fragment(), SensorEventListener {
 
     private lateinit var homeViewModel: HomeViewModel
-    private lateinit var sensorM: SensorManager
+    private lateinit var mSensorManager: SensorManager
+    private var proximityS: Sensor? = null
+    private var PushUps: Int = 0
+
+    override fun onAccuracyChanged(p0: Sensor?, p1: Int) {
+
+    }
+
+    override fun onSensorChanged(p0: SensorEvent?) {
+        if (p0!!.sensor.type == Sensor.TYPE_PROXIMITY) {
+            if (p0.values[0].toString() == proximityS!!.maximumRange.toString()) {
+                PushUps += 1
+                Toast.makeText(context, PushUps.toString(), Toast.LENGTH_SHORT).show()
+            }
+            if (p0.values[0].toString() != proximityS!!.maximumRange.toString()) {
+                Toast.makeText(context, PushUps.toString(), Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -39,27 +59,17 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        sensorM =  activity!!.getSystemService(SENSOR_SERVICE) as SensorManager
-        val proximityS: Sensor = sensorM.getDefaultSensor(Sensor.TYPE_PROXIMITY)
+        mSensorManager = context!!.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        proximityS = mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY)
+    }
 
-        if (proximityS == null) {
-            Toast.makeText(context, "Proximity sensor is unavalaible", Toast.LENGTH_SHORT).show()
-        }
-
-        val proximitySensorL: SensorEventListener = object: SensorEventListener {
-            override fun onSensorChanged(p0: SensorEvent?) {
-                Toast.makeText(context, p0!!.values[0].toInt(), Toast.LENGTH_SHORT).show()
-            }
-
-            override fun onAccuracyChanged(p0: Sensor?, p1: Int) {
-
-            }
-        }
-
-        sensorM.registerListener(proximitySensorL, proximityS, 2 * 1000 * 1000)
+    override fun onResume() {
+        super.onResume()
+        mSensorManager.registerListener(this, proximityS, SensorManager.SENSOR_DELAY_NORMAL)
     }
 
     override fun onPause() {
         super.onPause()
+        mSensorManager.unregisterListener(this)
     }
 }
